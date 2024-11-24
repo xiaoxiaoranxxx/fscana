@@ -1,0 +1,11 @@
+*.exe
+fscan_arm
+fscan64
+fscan386
+dist/*
+release/*
+result*
+*.7z
+*.jpg
+*.xml
+*.xlsx
