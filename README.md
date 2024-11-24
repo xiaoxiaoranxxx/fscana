@@ -55,7 +55,7 @@
 
 资产指纹识别效果（运行时添加-nmap参数即可）：
 
-![image.png](assets/1732418411684-b0e22482-5c75-43f7-831b-30f44fc62982.webp)
+![image.png](assets/2.png)
 
 ### Web指纹自定义
 在Plugins\scanner.go中，我使用<font style="color:#bcbec4;background-color:#1e1f22;">//go:embed fingerprint.txt </font>将Plugins\fingerprint.txt直接嵌入到编译出的可执行文件中了，并且程序运行时，会自动检测同目录下是否有fingerprint.txt文件，如果有则加载外挂的这个文件，如果没有，则会加载嵌入到可执行文件中的fingerprint.txt作为指纹库。
@@ -78,7 +78,7 @@
 + 页面copyright版权信息
 + https证书信息，公用名 (CN)、组织 (O)、组织单位 (OU)、绑定的域名（Domain）
 
-![image.png](assets/1732418874227-b212270d-a930-4bce-9367-e945ce0032d0.webp)
+![image.png](assets/3.png)
 
 以上这些信息，都对识别资产身份、组织机构起到重要作用。
 
@@ -116,14 +116,14 @@ fscanx -nobr -nopoc -nmap -iface 10.202.100.100 -h 192.168.0.0/16
 + 修改smb插件逻辑，默认尝试匿名登录，如果成功就会遍历打印出共享目录下的文件名单，以方便快速找到可利用的高价值文件。
 + 增加socks5代理支持。
 
-![image.png](assets/1732425599782-ee3a3545-904e-43b0-bfe1-95c0a00462ca.webp)
+![image.png](assets/4.png)
 
 ## （6）ftp探测优化
 + 修改github.com/jlaffaye/ftp库，添加对socks5代理的支持。
     - 这里遇到的坑是ftp登录认证后，进行文件List或者下载都是重新协商一个通信端口发起新的连接，此处也要重新封装dialer。
 + 新增默认情况下尝试匿名登录，如果成功则遍历打印出ftp服务器目录下的文件清单，方便查找高价值文件。
 
-![image.png](assets/1732426001936-6b5547a4-4da7-4f44-87ed-083d0873836e.webp)
+![image.png](assets/5.png)
 
 到目前为止，内网中最常见的两种文件服务器（ftp、smb）我们都已经做好了优化，不仅能直接检查匿名登录，还可以打印文件清单，并且支持socks5代理，极大方便了我们对内网的文件服务的检索和浏览，助力找到高价值文件。
 
@@ -144,7 +144,7 @@ fscanx -nobr -nopoc -nmap -iface 10.202.100.100 -h 192.168.0.0/16
 fscanx -nobr -nopoc -nmap -h 192.168.181.1/24 -p 3389 -screen -time 18
 ```
 
-![Snipaste_2024-11-24_15-01-20.png](assets/1732431799483-1863e860-9ba9-4ecc-b942-8201b2a3947a.webp)
+![Snipaste_2024-11-24_15-01-20.png](assets/6.png)
 
 （由于rdp会传输图像，延迟可以设置长一点，否则有时候会截屏失败）
 
