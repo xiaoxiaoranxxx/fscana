@@ -12,7 +12,6 @@ package socks
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -150,7 +149,6 @@ type Dialer struct {
 // See func Dial of the net package of standard library for a
 // description of the network and address parameters.
 func (d *Dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	fmt.Println("[+] socks.go, DialContext ")
 	if err := d.validateTarget(network, address); err != nil {
 		proxy, dst, _ := d.pathAddrs(address)
 		return nil, &net.OpError{Op: d.cmd.String(), Net: network, Source: proxy, Addr: dst, Err: err}
