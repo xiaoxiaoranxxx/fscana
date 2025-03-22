@@ -75,7 +75,9 @@ func RdpScan(info *common.HostInfo) (tmperr error) {
 					OsVerion = field_value
 				}
 			}
-
+			if OsVerion == "" && netBiosComputerName == "" && netBiosComputerName == "" && FQDN == "" && netBiosDomainName == "" &&  DNSDomainName == ""{
+				return
+			} 
 			osInfoStr := fmt.Sprintf("[+] get os info by rdpscan: %s, Build:Windows %s, OS:(%s), Hostname:%s, DNSDomainName:%s, FQDN:%s, NetBIOSDomainName:%s, DnsdDomainName:%s", host, ProductVersion, OsVerion, netBiosComputerName, netBiosComputerName, FQDN, netBiosDomainName, DNSDomainName)
 			common.LogSuccess(osInfoStr)
 		}
