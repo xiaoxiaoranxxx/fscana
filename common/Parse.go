@@ -139,7 +139,7 @@ func ParseInput(Info *HostInfo) {
 		BruteThread = 5
 	}
 
-	if TmpSave == true {
+	if TmpSave {
 		IsSave = false
 	}
 

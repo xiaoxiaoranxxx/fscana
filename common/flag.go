@@ -3,34 +3,16 @@ package common
 import (
 	"flag"
 	"fmt"
-	"github.com/xxx/wscan/mylib/grdp/login"
 	"os"
 	"time"
+
+	"github.com/xxx/wscan/mylib/grdp/login"
 )
 
-func Banner() {
-	banner := `
-$$$$$$$$\                                         $$$$$$\ $$\     
-$$  _____|                                        \_$$  _|$$ |    
-$$ |      $$$$$$$\  $$\  $$$$$$\  $$\   $$\         $$ |$$$$$$\   
-$$$$$\    $$  __$$\ \__|$$  __$$\ $$ |  $$ |        $$ |\_$$  _|  
-$$  __|   $$ |  $$ |$$\ $$ /  $$ |$$ |  $$ |        $$ |  $$ |    
-$$ |      $$ |  $$ |$$ |$$ |  $$ |$$ |  $$ |        $$ |  $$ |$$\ 
-$$$$$$$$\ $$ |  $$ |$$ |\$$$$$$  |\$$$$$$$ |      $$$$$$\ \$$$$  |
-\________|\__|  \__|$$ | \______/  \____$$ |      \______| \____/ 
-              $$\   $$ |          $$\   $$ |                      
-              \$$$$$$  |          \$$$$$$  |                      
-               \______/            \______/                                             
-` + version + `
-`
-	print(banner)
-}
-
 func Flag(Info *HostInfo) {
-	Banner()
-	flag.StringVar(&Info.Host, "h", "", "IP address of the host you want to scan,for example: 192.168.11.11 | 192.168.11.11-255 | 192.168.11.11,192.168.11.12")
+	flag.StringVar(&Info.Host, "h", "", "IP address of the host you want to scan")
 	flag.StringVar(&NoHosts, "hn", "", "the hosts no scan,as: -hn 192.168.1.1/24")
-	flag.StringVar(&Ports, "p", DefaultPorts, "Select a port,for example: 22 | 1-65535 | 22,80,3306")
+	flag.StringVar(&Ports, "p", DefaultPorts, "Select a port")
 	flag.StringVar(&PortAdd, "pa", "", "add port base DefaultPorts,-pa 3389")
 	flag.StringVar(&UserAdd, "usera", "", "add a user base DefaultUsers,-usera user")
 	flag.StringVar(&PassAdd, "pwda", "", "add a password base DefaultPasses,-pwda password")
@@ -67,7 +49,7 @@ func Flag(Info *HostInfo) {
 	flag.StringVar(&UrlFile, "uf", "", "urlfile")
 	flag.StringVar(&Pocinfo.PocName, "pocname", "", "use the pocs these contain pocname, -pocname weblogic")
 	flag.StringVar(&Proxy, "proxy", "", "set poc proxy, -proxy http://127.0.0.1:8080")
-	flag.StringVar(&Socks5Proxy, "socks5", "", "set socks5 proxy, will be used in tcp connection, timeout setting will not work")
+	flag.StringVar(&Socks5Proxy, "socks5", "", "set socks5 proxy")
 	flag.StringVar(&Cookie, "cookie", "", "set poc cookie,-cookie rememberMe=login")
 	flag.Int64Var(&WebTimeout, "wt", 8, "Set web timeout")
 	flag.BoolVar(&DnsLog, "dns", false, "using dnslog poc")
@@ -83,8 +65,8 @@ func Flag(Info *HostInfo) {
 	flag.IntVar(&PingTimeout, "pt", 6, "ping timeout")                           //own add
 	flag.IntVar(&TitleScanThreads, "tn", 60, "Title scan Thread nums")           //own add
 	flag.BoolVar(&IsScreenShot, "screen", false, "make and save rdp screenshot") //own add
-
 	flag.Parse()
+	go SaveLog()
 	Title_scan_ch = make(chan int, TitleScanThreads)
 	if IsScreenShot {
 		nowTimestamp := time.Now().Format("2006_01_02_15_04_05")

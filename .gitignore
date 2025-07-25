@@ -1,4 +1,5 @@
 *.exe
+.vscode
 fscan_arm
 fscan64
 fscan386
@@ -9,3 +10,4 @@ result*
 *.jpg
 *.xml
 *.xlsx
+bin/*

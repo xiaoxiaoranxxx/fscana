@@ -32,7 +32,6 @@ type JsonText struct {
 func init() {
 	log.SetOutput(io.Discard)
 	LogSucTime = time.Now().Unix()
-	go SaveLog()
 }
 
 func LogSuccess(result string) {
