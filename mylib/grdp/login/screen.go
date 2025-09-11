@@ -219,7 +219,8 @@ func ToRGBA(pixel int, i int, data []byte) (r, g, b, a uint8) {
 func (g *Client) ProbeOSInfo(host, domain, user, pwd string, timeout int64, rdpProtocol uint32) (info map[string]any) {
 	start := time.Now()
 	exitFlag := make(chan bool)
-
+	info = make(map[string]any)
+	
 	targetSlice := strings.Split(g.Host, ":")
 	ip := targetSlice[0]
 	conn, err := WrapperTcpWithTimeout("tcp", g.Host, time.Duration(timeout)*time.Second)

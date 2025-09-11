@@ -79,8 +79,6 @@ func Scan(info common.HostInfo) {
 		return
 	}
 	lib.Inithttp()
-	// var ch = make(chan struct{}, common.PortScanThreads)
-	var ch = make(chan struct{}, common.PortScanThreads)
 	var wg = sync.WaitGroup{}
 	web := strconv.Itoa(common.PORTList["web"])
 	ms17010 := strconv.Itoa(common.PORTList["ms17010"])
@@ -158,29 +156,29 @@ func Scan(info common.HostInfo) {
 
 			switch {
 			case info.Ports == "135":
-				AddScan(info.Ports, info, &ch, &wg) //findnet
+				AddScan(info.Ports, info, &wg) //findnet
 				if common.IsWmi {
-					AddScan("1000005", info, &ch, &wg) //wmiexec
+					AddScan("1000005", info, &wg) //wmiexec
 				}
 			case info.Ports == "389":
 				res := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", protocol, info.Host, info.Ports, "[+]DC")
 				common.LogSuccess(res)
 			case info.Ports == "445":
-				AddScan(ms17010, info, &ch, &wg)    //ms17010
-				AddScan(info.Ports, info, &ch, &wg) //smb
+				AddScan(ms17010, info, &wg)    //ms17010
+				AddScan(info.Ports, info, &wg) //smb
 				//AddScan("1000002", info, ch, &wg) //smbghost
 			case info.Ports == "9000":
-				//AddScan(web, info, &ch, &wg)        //http
-				AddScan(info.Ports, info, &ch, &wg) //fcgiscan
+				//AddScan(web, info, &wg)        //http
+				AddScan(info.Ports, info, &wg) //fcgiscan
 			case IsContain(severports, info.Ports):
 				//fmt.Println("[debug] current port =", info.Ports)
-				AddScan(info.Ports, info, &ch, &wg) //plugins scan
+				AddScan(info.Ports, info, &wg) //plugins scan
 				fallthrough                         // 继续执行下一个分支
 			default:
 				if common.UseNmap {
 					//fmt.Println("get protocol:", protocol, len(protocol))
 					if strings.Contains(protocol, "http") {
-						AddScan(web, info, &ch, &wg) //webtitle
+						AddScan(web, info, &wg) //webtitle
 					} else if protocol == "imap" || protocol == "imap-proxy" || protocol == "smtp" || protocol == "pop3" || protocol == "ssh" || protocol == "ftp" {
 						banner = strings.ReplaceAll(banner, "\r\n", "__")
 						banner = strings.ReplaceAll(banner, "\n", "__")
@@ -196,10 +194,10 @@ func Scan(info common.HostInfo) {
 						res := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", protocol, info.Host, info.Ports, banner)
 						common.LogSuccess(res)
 					} else if protocol == "rdp" && info.Ports != "3389" {
-						AddScan("3389", info, &ch, &wg)
+						AddScan("3389", info, &wg)
 					}
 				} else {
-					AddScan(web, info, &ch, &wg) //webtitle
+					AddScan(web, info, &wg) //webtitle
 				}
 
 			}
@@ -208,7 +206,7 @@ func Scan(info common.HostInfo) {
 	}
 	for _, url := range common.Urls {
 		info.Url = url
-		AddScan(web, info, &ch, &wg)
+		AddScan(web, info, &wg)
 	}
 	wg.Wait()
 	common.LogWG.Wait()
@@ -218,11 +216,14 @@ func Scan(info common.HostInfo) {
 
 var Mutex = &sync.Mutex{}
 
-func AddScan(scantype string, info common.HostInfo, ch *chan struct{}, wg *sync.WaitGroup) {
-	*ch <- struct{}{}
+func AddScan(scantype string, info common.HostInfo, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer func() {
+			Mutex.Lock()
+			common.End += 1
+			Mutex.Unlock()
+			wg.Done()
 			if r := recover(); r != nil {
 				fmt.Printf("[ERROR] Goroutine AddScan panic: %v\n", r)
 			}
@@ -231,11 +232,6 @@ func AddScan(scantype string, info common.HostInfo, ch *chan struct{}, wg *sync.
 		common.Num += 1
 		Mutex.Unlock()
 		ScanFunc(&scantype, &info)
-		Mutex.Lock()
-		common.End += 1
-		Mutex.Unlock()
-		wg.Done()
-		<-*ch
 	}()
 }
 
