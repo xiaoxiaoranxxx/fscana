@@ -3,6 +3,7 @@ package Plugins
 import (
 	"compress/gzip"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,8 +63,8 @@ func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckData
 			info.Url = fmt.Sprintf("%s://%s", protocol, info.Url)
 		}
 	}
-
 	err, result, CheckData := geturl(info, 1, CheckData)
+
 	if err != nil && !strings.Contains(err.Error(), "EOF") {
 		return
 	}
@@ -185,8 +186,9 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 	} else {
 		client = lib.Client
 	}
-
+	client.Timeout = time.Duration(common.WebTimeout) * time.Second
 	resp, err := client.Do(req)
+
 	if err != nil {
 		return err, "https", CheckData
 	}
@@ -195,7 +197,9 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 	var title string
 	body, err := getRespBody(resp)
 	if err != nil {
-		return err, "https", CheckData
+		if err.Error() != "body is empty" {
+			return err, "https", CheckData
+		}
 	}
 
 	var certInfo string = ""
@@ -296,6 +300,9 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 
 func getRespBody(oResp *http.Response) ([]byte, error) {
 	var body []byte
+	if oResp.ContentLength == 0 {
+		return []byte{}, errors.New("body is empty")
+	}
 	if oResp.Header.Get("Content-Encoding") == "gzip" {
 		gr, err := gzip.NewReader(oResp.Body)
 		if err != nil {
