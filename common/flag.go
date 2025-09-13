@@ -3,9 +3,10 @@ package common
 import (
 	"flag"
 	"fmt"
-	"github.com/xxx/wscan/mylib/grdp/login"
 	"os"
 	"time"
+
+	"github.com/xxx/wscan/mylib/grdp/login"
 )
 
 func Banner() {
@@ -28,6 +29,7 @@ $$$$$$$$\ $$ |  $$ |$$ |\$$$$$$  |\$$$$$$$ |      $$$$$$\ \$$$$  |
 
 func Flag(Info *HostInfo) {
 	Banner()
+	AlivePort = make(map[int]bool)
 	flag.StringVar(&Info.Host, "h", "", "IP address of the host you want to scan,for example: 192.168.11.11 | 192.168.11.11-255 | 192.168.11.11,192.168.11.12")
 	flag.StringVar(&NoHosts, "hn", "", "the hosts no scan,as: -hn 192.168.1.1/24")
 	flag.StringVar(&Ports, "p", DefaultPorts, "Select a port,for example: 22 | 1-65535 | 22,80,3306")
@@ -43,7 +45,7 @@ func Flag(Info *HostInfo) {
 	flag.Int64Var(&TcpTimeout, "time", 8, "Set timeout")
 	flag.StringVar(&Scantype, "m", "all", "Select scan type ,as: -m ssh")
 	flag.StringVar(&Path, "path", "", "fcgi、smb romote file path")
-	flag.IntVar(&PortScanThreads, "t", 1024, "Port scan Thread nums")
+	flag.IntVar(&PortScanThreads, "t", 512, "Port scan Thread nums")
 	flag.IntVar(&LiveTop, "top", 10, "show live len top")
 	flag.StringVar(&HostFile, "hf", "", "host file, -hf ip.txt")
 	flag.StringVar(&Userfile, "userf", "", "username file")
@@ -83,6 +85,7 @@ func Flag(Info *HostInfo) {
 	flag.IntVar(&PingTimeout, "pt", 6, "ping timeout")                           //own add
 	flag.IntVar(&TitleScanThreads, "tn", 60, "Title scan Thread nums")           //own add
 	flag.BoolVar(&IsScreenShot, "screen", false, "make and save rdp screenshot") //own add
+	flag.BoolVar(&StdInput, "std", false, "read ip:port from stdin, one per line")
 
 	flag.Parse()
 	Title_scan_ch = make(chan int, TitleScanThreads)

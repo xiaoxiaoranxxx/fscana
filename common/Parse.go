@@ -130,9 +130,11 @@ func Readfile(filename string) ([]string, error) {
 
 func ParseInput(Info *HostInfo) {
 	if Info.Host == "" && HostFile == "" && URL == "" && UrlFile == "" {
-		fmt.Println("Host is none")
-		flag.Usage()
-		os.Exit(0)
+		if StdInput == false {
+			fmt.Println("Host is none")
+			flag.Usage()
+			os.Exit(0)
+		}
 	}
 
 	if BruteThread <= 0 {

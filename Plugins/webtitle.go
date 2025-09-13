@@ -223,7 +223,8 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 			} else {
 				certInfo = strings.Replace(certInfo, "\n", "_", -1)
 			}
-
+			certInfo = strings.Replace(certInfo, "\n", "_", -1)
+			certInfo = strings.Replace(certInfo, "\r", "_", -1)
 			/*
 				cert_info content like this:
 

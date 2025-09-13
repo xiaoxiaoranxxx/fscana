@@ -36,7 +36,6 @@ var (
 )
 
 func init() {
-
 }
 
 func RdpConn(host, domain, user, password string, timeout int64, rdpProtocol uint32) (bool, error) {
@@ -220,7 +219,7 @@ func (g *Client) ProbeOSInfo(host, domain, user, pwd string, timeout int64, rdpP
 	start := time.Now()
 	exitFlag := make(chan bool)
 	info = make(map[string]any)
-	
+
 	targetSlice := strings.Split(g.Host, ":")
 	ip := targetSlice[0]
 	conn, err := WrapperTcpWithTimeout("tcp", g.Host, time.Duration(timeout)*time.Second)

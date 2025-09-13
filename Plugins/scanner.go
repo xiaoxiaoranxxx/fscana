@@ -1,9 +1,9 @@
 package Plugins
 
 import (
+	"bufio"
 	"embed"
 	"fmt"
-	"github.com/xxx/wscan/mylib/gonmap"
 	"os"
 	"reflect"
 	"strconv"
@@ -14,7 +14,64 @@ import (
 	"github.com/xxx/wscan/WebScan/lib"
 	"github.com/xxx/wscan/common"
 	"github.com/xxx/wscan/mylib/appfinger"
+	"github.com/xxx/wscan/mylib/gonmap"
 )
+
+func init() {
+	for _, port := range common.PORTList {
+		common.ProtocolArray = append(common.ProtocolArray, strconv.Itoa(port))
+	}
+}
+
+// 从标准输入读取 ip:port 并探测
+func ScanFromStdin() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("[ERROR] ScanFromStdin Scan panic: %v\n", r)
+		}
+	}()
+	InitKscan()
+	scanner := bufio.NewScanner(os.Stdin)
+	addrChan := make(chan Addr, common.PortScanThreads)
+	nowStr := time.Now().Format("2006-01-02 15:04:05")
+	common.LogSuccess(fmt.Sprintf("===================new task===================\n%s\nargs: %s\ntarget: stdin", nowStr, strings.Join(os.Args[1:], " ")))
+	fmt.Println("start infoscan")
+	lib.Inithttp()
+
+	go func() {
+		PortScanFromChan(addrChan)
+	}()
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
+			fmt.Fprintf(os.Stderr, "[!] 输入格式错误: %s\n", line)
+			continue
+		}
+
+		info := common.HostInfo{Host: parts[0], Ports: parts[1]}
+		port, err := strconv.Atoi(info.Ports)
+		if err != nil {
+			port = 80
+		}
+		addrChan <- Addr{info.Host, port}
+
+	}
+	close(addrChan)
+	common.LogWG.Wait()
+	alivePortReport := fmt.Sprintf("[+] alive ports(%d): ", len(common.AlivePort))
+	for alivePort, _ := range common.AlivePort {
+		alivePortReport += strconv.Itoa(alivePort)
+		alivePortReport += ","
+	}
+	alivePortReport = strings.TrimRight(alivePortReport, ",")
+	common.LogSuccess(alivePortReport)
+	common.LogWG.Wait()
+	close(common.Results)
+}
 
 //go:embed fingerprint.txt
 var fingerprintEmbed embed.FS
@@ -173,7 +230,7 @@ func Scan(info common.HostInfo) {
 			case IsContain(severports, info.Ports):
 				//fmt.Println("[debug] current port =", info.Ports)
 				AddScan(info.Ports, info, &wg) //plugins scan
-				fallthrough                         // 继续执行下一个分支
+				fallthrough                    // 继续执行下一个分支
 			default:
 				if common.UseNmap {
 					//fmt.Println("get protocol:", protocol, len(protocol))

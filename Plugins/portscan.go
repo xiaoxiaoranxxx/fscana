@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -94,6 +95,21 @@ func PortScan(hostslist []string, ports string, timeout int64) []*PortInfo {
 	return AliveAddress
 }
 
+// 从channel动态接收ip和端口并发扫描
+func PortScanFromChan(addrChan chan Addr) {
+
+	// 启动worker
+	for i := 0; i < common.PortScanThreads; i++ {
+		common.LogWG.Add(1)
+		go func() {
+			defer common.LogWG.Done()
+			for addr := range addrChan {
+				PortProbeSingle(addr)
+			}
+		}()
+	}
+}
+
 func PortConnect(addr Addr, respondingHosts chan<- *PortInfo, adjustedTimeout int64, wg *sync.WaitGroup) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -157,6 +173,108 @@ func PortConnect(addr Addr, respondingHosts chan<- *PortInfo, adjustedTimeout in
 		}
 	}
 
+}
+
+func PortProbeSingle(addr Addr) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("[-] PortProbeSingle error: %v\n", err)
+		}
+	}()
+	var wg = sync.WaitGroup{}
+	web := "1000003"
+	ms17010 := "1000001"
+	res := &common.HostInfo{}
+	host, port := addr.ip, addr.port
+	nmap := gonmap.New()
+	//fmt.Println(nmap)
+	status, response := nmap.ScanTimeout(host, port, time.Second*time.Duration(common.TcpTimeout*4), time.Second*time.Duration(common.TcpTimeout))
+	res.Host = host
+	res.Ports = strconv.Itoa(port)
+
+	switch status {
+	case gonmap.Closed:
+		//fmt.Println("port ", port, "close")
+		return
+	case gonmap.Open:
+		address := host + ":" + res.Ports
+		result := fmt.Sprintf("%s open", address)
+		common.LogSuccess(result)
+	case gonmap.NotMatched:
+		address := host + ":" + res.Ports
+		result := fmt.Sprintf("%s open", address)
+		common.LogSuccess(result)
+	case gonmap.Matched:
+		//fmt.Println("[debug] get cert info:", response.FingerPrint.Info)
+		address := host + ":" + res.Ports
+		result := fmt.Sprintf("%s open %s", address, response.FingerPrint.Service)
+		if strings.HasPrefix(response.FingerPrint.Service, "http") == false {
+			common.LogSuccess(result)
+		}
+
+	case gonmap.Unknown:
+		address := host + ":" + res.Ports
+		result := fmt.Sprintf("%s open", address)
+		common.LogSuccess(result)
+	}
+	if response != nil && response.FingerPrint != nil {
+		info := res
+		protocol := ""
+		//certInfo := ""
+		banner := ""
+		common.AlivePort[port] = true
+		if response != nil {
+
+			protocol = response.FingerPrint.Service
+			if protocol == "" {
+				protocol = "unkown"
+			}
+			//certInfo = portInfo.FingerPrint.Info
+			banner = response.Raw
+
+		}
+		//res.Banner = banner
+
+		switch {
+		case info.Ports == "135":
+			AddScan(info.Ports, *info, &wg)
+			if common.IsWmi {
+				AddScan("1000005", *info, &wg)
+			}
+		case info.Ports == "389":
+			res := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", "", info.Host, info.Ports, "[+]DC")
+			common.LogSuccess(res)
+		case info.Ports == "445":
+			AddScan(ms17010, *info, &wg)
+			AddScan(info.Ports, *info, &wg)
+		case info.Ports == "9000":
+			AddScan(info.Ports, *info, &wg)
+		case IsContain(common.ProtocolArray, info.Ports):
+			AddScan(info.Ports, *info, &wg)
+			fallthrough
+		default:
+			if strings.Contains(protocol, "http") {
+				AddScan(web, *info, &wg) //webtitle
+			} else if protocol == "imap" || protocol == "imap-proxy" || protocol == "smtp" || protocol == "pop3" || protocol == "ssh" || protocol == "ftp" {
+				banner = strings.ReplaceAll(banner, "\r\n", "__")
+				banner = strings.ReplaceAll(banner, "\n", "__")
+				banner = strings.ReplaceAll(banner, "\r", "__")
+				if strings.HasSuffix(banner, "__") {
+					banner = banner[:len(banner)-2]
+				}
+				if (protocol == "ssh" || strings.HasPrefix(protocol, "imap")) && len(banner) >= 70 {
+					banner = banner[:70]
+					banner = strings.Split(banner, "__")[0]
+				}
+
+				result := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", protocol, info.Host, info.Ports, banner)
+				common.LogSuccess(result)
+			} else if protocol == "rdp" && info.Ports != "3389" {
+				AddScan("3389", *info, &wg)
+			}
+		}
+	}
+	wg.Wait()
 }
 
 func NoPortScan(hostslist []string, ports string) (AliveAddress []*PortInfo) {

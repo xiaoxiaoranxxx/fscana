@@ -57,42 +57,76 @@ def OpenFile():
 
 #输出存活端口
 def open_port_export(datalist):
-    sheetList = [['ip', 'port', 'protocol']]
-    unique_dic = {}
+    try:
+        sheetList = [['ip', 'port', 'protocol']]
+        unique_dic = {}
 
-    for i in datalist:
-        p = re.findall(r'^\d[^\s]+ open.*?$', i)
+        for i in datalist:
+            p = re.findall(r'^\d[^\s]+ open.*?$', i)
 
-        if len(p) != 0:
-            p1 = list(p)
-            for u in p1:
-                ip = re.findall(r"\d+\.\d+\.\d+\.\d+", u)
-                port = re.findall("(?<=:)\d+" , u)
-                protocol = re.findall(r"open (\S+)$" , u)
-                if len(protocol) > 0:
-                    protocol = protocol[0]
-                else:
-                    protocol = ''
-
-                try:
-                    ip_c = ".".join(ip[0].split('.')[:3])
-                    if unique_dic.get(ip_c):
-                        if unique_dic[ip_c].get(ip[0]):
-                            unique_dic[ip_c].get(ip[0])[f'{ip[0]}_{port[0]}'] = [ ip[0] , port[0] , protocol]
-                        else:
-                            unique_dic[ip_c][ip[0]] = {
-                                f'{ip[0]}_{port[0]}' : [ ip[0] , port[0] , protocol]
-                            }
+            if len(p) != 0:
+                p1 = list(p)
+                for u in p1:
+                    ip = re.findall(r"\d+\.\d+\.\d+\.\d+", u)
+                    port = re.findall("(?<=:)\d+" , u)
+                    protocol = re.findall(r"open (\S+)$" , u)
+                    if len(protocol) > 0:
+                        protocol = protocol[0]
                     else:
-                        unique_dic[ip_c] = {
-                            ip[0] : {
-                                f'{ip[0]}_{port[0]}' : [ ip[0] , port[0] , protocol]
+                        protocol = ''
+
+                    try:
+                        ip_c = ".".join(ip[0].split('.')[:3])
+                        if unique_dic.get(ip_c):
+                            if unique_dic[ip_c].get(ip[0]):
+                                unique_dic[ip_c].get(ip[0])[f'{ip[0]}_{port[0]}'] = [ ip[0] , port[0] , protocol]
+                            else:
+                                unique_dic[ip_c][ip[0]] = {
+                                    f'{ip[0]}_{port[0]}' : [ ip[0] , port[0] , protocol]
+                                }
+                        else:
+                            unique_dic[ip_c] = {
+                                ip[0] : {
+                                    f'{ip[0]}_{port[0]}' : [ ip[0] , port[0] , protocol]
+                                }
+                                
                             }
-                            
-                        }
-                except Exception as e:
-                    traceback.print_exc()
-                
+                    except Exception as e:
+                        traceback.print_exc()
+            else:
+                try:
+                    p_url = re.findall(r"http[^\s]+", i)
+                    url = [p_url[0]]
+                    urlp = urlparse(url[0])
+                    ip = urlp.netloc.split(":")[0].strip()
+                    print(ip)
+                    ip_partern = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+                    if not re.match(ip_partern, ip):
+                        continue
+                    port = urlp.netloc.split(":")[1]
+                    protocol = 'https' if url[0].startswith('https:') else 'http'
+                    try:
+                        ip_c = ".".join(ip.split('.')[:3])
+                        if unique_dic.get(ip_c):
+                            if unique_dic[ip_c].get(ip):
+                                unique_dic[ip_c].get(ip)[f'{ip}_{port}'] = [ ip , port , protocol]
+                            else:
+                                unique_dic[ip_c][ip] = {
+                                    f'{ip}_{port}' : [ ip , port , protocol]
+                                }
+                        else:
+                            unique_dic[ip_c] = {
+                                ip : {
+                                    f'{ip}_{port}' : [ ip , port , protocol]
+                                }
+                                
+                            }
+                    except Exception as e:
+                        traceback.print_exc()
+                except:
+                    pass
+    except Exception as e:
+        traceback.print_exc()
     for ip_c in unique_dic:
         ip_c_dic = unique_dic[ip_c]
         
@@ -519,12 +553,16 @@ def OutPut(sheetname, sheetList):
         except Exception as e:
             print('[debug] write excel err, content:', i)
             traceback.print_exc()
-
-    #首行格式
-    for row in ws[f"A1:{chr(65 + len(output_lines[0]) - 1)}1"]:
-        for cell in row:
-            cell.font = Font(size=12, bold=True)
-            
+    try:
+        if len(output_lines[0]) != 0:
+            #首行格式
+            for row in ws[f"A1:{chr(65 + len(output_lines[0]) - 1)}1"]:
+                for cell in row:
+                    cell.font = Font(size=12, bold=True)
+    except:
+        traceback.print_exc()
+        #print(output_lines[0])
+        #sys.exit(0)
     
     # 设置交替的颜色
     color_header = "249978"

@@ -14,6 +14,13 @@ func main() {
 	common.Flag(&Info)
 	common.Parse(&Info)
 
+	// 检查是否有 --std 参数（通过flag）
+	if common.StdInput {
+		Plugins.ScanFromStdin()
+		fmt.Printf("[*] scan done! cost: %s\n", time.Since(start))
+		return
+	}
+
 	// if common.Iface != "" {
 	// 	//添加环境变量 FORCEDIP
 	// 	err := os.Setenv("FORCEDIP", common.Iface)
@@ -47,7 +54,7 @@ func main() {
 	// 	}
 	// 	defer syscall.FreeLibrary(dllHandle)
 	// }
-	
+
 	Plugins.Scan(Info)
 	fmt.Printf("[*] scan done! cost: %s\n", time.Since(start))
 }
