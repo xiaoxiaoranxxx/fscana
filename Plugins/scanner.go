@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,18 +47,44 @@ func ScanFromStdin() {
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, ":")
-		if len(parts) != 2 {
-			fmt.Fprintf(os.Stderr, "[!] 输入格式错误: %s\n", line)
+		//parts := strings.Split(line, ":")
+		//if len(parts) != 2 {
+		//	fmt.Fprintf(os.Stderr, "[!] 输入格式错误: %s\n", line)
+		//	continue
+		//}
+		ip, port := "", ""
+		re := regexp.MustCompile(`^.*?(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5}).*?$`)
+		//Discovered open port 8000/tcp on 222.213.125.131
+		re_masscan := regexp.MustCompile(`^Discovered.*port\s+(\d{1,5}).*on\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`)
+		matches := re.FindAllStringSubmatch(line, -1)
+		matches_masscan := re_masscan.FindAllStringSubmatch(line, -1)
+		if len(matches) >= 1 {
+			match := matches[0]
+			if len(match) == 3 {
+				ip = match[1]
+				port = match[2]
+			} else {
+				continue
+			}
+
+		} else if len(matches_masscan) >= 1 {
+			match := matches_masscan[0]
+			if len(match) == 3 {
+				port = match[1]
+				ip = match[2]
+			} else {
+				continue
+			}
+		} else {
 			continue
 		}
 
-		info := common.HostInfo{Host: parts[0], Ports: parts[1]}
-		port, err := strconv.Atoi(info.Ports)
+		info := common.HostInfo{Host: ip, Ports: port}
+		portInt, err := strconv.Atoi(info.Ports)
 		if err != nil {
-			port = 80
+			portInt = 80
 		}
-		addrChan <- Addr{info.Host, port}
+		addrChan <- Addr{info.Host, portInt}
 
 	}
 	close(addrChan)
