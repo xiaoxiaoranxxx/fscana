@@ -12,6 +12,10 @@ import (
 	"github.com/xxx/wscan/mylib/gonmap"
 )
 
+var (
+	mapLock sync.RWMutex
+)
+
 type Addr struct {
 	ip   string
 	port int
@@ -222,7 +226,11 @@ func PortProbeSingle(addr Addr) {
 		protocol := ""
 		//certInfo := ""
 		banner := ""
-		common.AlivePort[port] = true
+		_, exist := common.AlivePort.Load(port)
+		if exist != true {
+			common.AlivePort.Store(port, true)
+		}
+
 		if response != nil {
 
 			protocol = response.FingerPrint.Service

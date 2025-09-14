@@ -89,11 +89,17 @@ func ScanFromStdin() {
 	}
 	close(addrChan)
 	common.LogWG.Wait()
-	alivePortReport := fmt.Sprintf("[+] alive ports(%d): ", len(common.AlivePort))
-	for alivePort, _ := range common.AlivePort {
+
+	alivePortReport := "[+] alive ports(%d): "
+	count := 0
+	common.AlivePort.Range(func(key, value interface{}) bool {
+		alivePort := key.(int)
 		alivePortReport += strconv.Itoa(alivePort)
 		alivePortReport += ","
-	}
+		count++
+		return true
+	})
+	alivePortReport = fmt.Sprintf(alivePortReport, count)
 	alivePortReport = strings.TrimRight(alivePortReport, ",")
 	common.LogSuccess(alivePortReport)
 	common.LogWG.Wait()

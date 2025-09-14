@@ -6,7 +6,7 @@
   - 使用方法，①下载我修改的masscan程序，https://github.com/killmonday/masscan-own/releases 我主要做了两点修改，增加-y选项可改变masscan输出格式为 IP:PORT 每行一个，以方便适配其他程序的输入。②修改打印进度的时间间隔为20秒，这样不会造成fscanx的输出看起来错乱，因为两个程序都在屏幕打印就会乱。③执行：
 
     ```
-    masscan.exe  --rate 200 --ports 22,80,443  x.x.x.x/24 | fscan.exe -std 
+    masscan.exe  --rate 200 --ports 22,80,443  x.x.x.x/24 | fscan.exe -std -nobr -nopoc
     ```
 
     通过管道把masscan的输出给fscanx就可以了，得益于masscan的斗宗战力，现在速度极快。

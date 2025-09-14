@@ -1,5 +1,7 @@
 package common
 
+import "sync"
+
 var version = "1.8.3.a"
 var Userdict = map[string][]string{
 	"ftp":        {"ftp", "admin", "www", "web", "root", "db", "wwwroot", "data"},
@@ -149,4 +151,4 @@ var (
 	Title_scan_ch chan int
 )
 
-var AlivePort map[int]bool
+var AlivePort sync.Map
