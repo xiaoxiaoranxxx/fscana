@@ -3,7 +3,7 @@
 
   - 增加-std选项。使用后可从标准输入中获取masscan的输出结果，解析ip和端口直接进行端口扫描、协议识别、密码爆破、poc测试等。斗宗强者masscan恐怖如斯，不接受反驳，底层无状态异步（收发双工）遥遥领先，Feistel网络做海量扫描地址和端口的随机化，根本不会遗漏资产且性能消耗极低，懂的都懂。网上现在有一些不靠谱的测试甚嚣尘上，实际上测试方法有问题，有时间我写篇文章为masscan正名。
 
-  - 使用方法，①下载我修改的masscan程序，https://github.com/killmonday/masscan-own/releases。我主要做了两点修改，增加-y选项可改变masscan输出格式为 IP:PORT 每行一个，以方便适配其他程序的输入。②修改打印进度的时间间隔为20秒，这样不会造成fscanx的输出看起来错乱，因为两个程序都在屏幕打印就会乱。③执行：
+  - 使用方法，①下载我修改的masscan程序，https://github.com/killmonday/masscan-own/releases 我主要做了两点修改，增加-y选项可改变masscan输出格式为 IP:PORT 每行一个，以方便适配其他程序的输入。②修改打印进度的时间间隔为20秒，这样不会造成fscanx的输出看起来错乱，因为两个程序都在屏幕打印就会乱。③执行：
 
     ```
     masscan.exe  --rate 200 --ports 22,80,443  x.x.x.x/24 | fscan.exe -std 
