@@ -55,9 +55,12 @@ func ScanFromStdin() {
 		ip, port := "", ""
 		re := regexp.MustCompile(`^.*?(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5}).*?$`)
 		//Discovered open port 8000/tcp on 222.213.125.131
-		re_masscan := regexp.MustCompile(`^Discovered.*port\s+(\d{1,5}).*on\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`)
+		re_masscan_running := regexp.MustCompile(`^Discovered.*port\s+(\d{1,5}).*on\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`) // masscan运行时的输出格式
+		re_masscan_output := regexp.MustCompile(`^open.*\s+(\d{1,5})\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`)                // masscan的 -oL输出格式
+
 		matches := re.FindAllStringSubmatch(line, -1)
-		matches_masscan := re_masscan.FindAllStringSubmatch(line, -1)
+		matches_masscan_running := re_masscan_running.FindAllStringSubmatch(line, -1)
+		matches_masscan_output := re_masscan_output.FindAllStringSubmatch(line, -1)
 		if len(matches) >= 1 {
 			match := matches[0]
 			if len(match) == 3 {
@@ -67,8 +70,16 @@ func ScanFromStdin() {
 				continue
 			}
 
-		} else if len(matches_masscan) >= 1 {
-			match := matches_masscan[0]
+		} else if len(matches_masscan_running) >= 1 {
+			match := matches_masscan_running[0]
+			if len(match) == 3 {
+				port = match[1]
+				ip = match[2]
+			} else {
+				continue
+			}
+		} else if len(matches_masscan_output) >= 1 {
+			match := matches_masscan_output[0]
 			if len(match) == 3 {
 				port = match[1]
 				ip = match[2]
