@@ -75,11 +75,22 @@ func ScanFromStdin() {
 			} else {
 				continue
 			}
+		} else if strings.HasPrefix(line, "http") {
+			// 如果管道中传入的是 http(s)://域名
+			ip = "0.0.0.0"
+			port = "-1"
 		} else {
 			continue
 		}
 
-		info := common.HostInfo{Host: ip, Ports: port}
+		var info common.HostInfo
+		if ip == "0.0.0.0" && port == "-1" {
+			// 如果管道中传入的是 http(s)://域名
+			info = common.HostInfo{Host: line, Ports: port, Url: line}
+		} else {
+			info = common.HostInfo{Host: ip, Ports: port}
+		}
+
 		portInt, err := strconv.Atoi(info.Ports)
 		if err != nil {
 			portInt = 80

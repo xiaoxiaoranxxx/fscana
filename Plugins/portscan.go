@@ -190,6 +190,15 @@ func PortProbeSingle(addr Addr) {
 	ms17010 := "1000001"
 	res := &common.HostInfo{}
 	host, port := addr.ip, addr.port
+	if strings.HasPrefix(host, "http") && port == -1 {
+		// 此处说明传入的是域名，直接调用web扫描，然后返回
+		res.Url = host
+		res.Host = host
+		res.Ports = "-1"
+		AddScan("1000003", *res, &wg)
+		wg.Wait()
+		return
+	}
 	nmap := gonmap.New()
 	//fmt.Println(nmap)
 	status, response := nmap.ScanTimeout(host, port, time.Second*time.Duration(common.TcpTimeout*4), time.Second*time.Duration(common.TcpTimeout))

@@ -46,6 +46,7 @@ func WebTitle(info *common.HostInfo) error {
 }
 func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckDatas) {
 	if info.Url == "" {
+		// 如果url为空，说明输入是ip，此处构造url
 		switch info.Ports {
 		case "80":
 			info.Url = fmt.Sprintf("http://%s", info.Host)
@@ -57,6 +58,7 @@ func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckData
 			info.Url = fmt.Sprintf("%s://%s:%s", protocol, info.Host, info.Ports)
 		}
 	} else {
+		// url存在，说明输入的是域名资产，检查格式是否符合标准url，不符合就构造一下。否则不做任何操作
 		if !strings.Contains(info.Url, "://") {
 			host := strings.Split(info.Url, "/")[0]
 			protocol := GetProtocol(host, common.TcpTimeout)
