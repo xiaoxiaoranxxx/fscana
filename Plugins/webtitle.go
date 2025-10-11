@@ -82,7 +82,9 @@ func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckData
 
 	if result == "https" && !strings.HasPrefix(info.Url, "https://") {
 		info.Url = strings.Replace(info.Url, "http://", "https://", 1)
+
 		err, result, CheckData = geturl(info, 1, CheckData)
+
 		//有跳转
 		if strings.Contains(result, "://") {
 			info.Url = result
@@ -190,7 +192,6 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 	}
 	client.Timeout = time.Duration(common.WebTimeout) * time.Second
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return err, "https", CheckData
 	}
@@ -305,7 +306,11 @@ func getRespBody(oResp *http.Response) ([]byte, error) {
 	var body []byte
 	if oResp.ContentLength == 0 {
 		return []byte{}, errors.New("body is empty")
+	} else if oResp.ContentLength == -1 {
+		// header中没有content-length时，oResp.ContentLength的值是-1，此时没必要读取body，会浪费一段读取的超时时间
+		return body, nil
 	}
+
 	if oResp.Header.Get("Content-Encoding") == "gzip" {
 		gr, err := gzip.NewReader(oResp.Body)
 		if err != nil {
