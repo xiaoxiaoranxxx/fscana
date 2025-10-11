@@ -307,7 +307,7 @@ func getRespBody(oResp *http.Response) ([]byte, error) {
 	if oResp.ContentLength == 0 {
 		return []byte{}, errors.New("body is empty")
 	} else if oResp.ContentLength == -1 {
-		// header中没有content-length时，oResp.ContentLength的值是-1，此时没必要读取body，会浪费一段读取的超时时间
+		// header中没有content-length时，oResp.ContentLength的值是-1，此时没必要读取body，会浪费一段读取的超时时间，并且会抛出异常导致误以为端口不开放
 		return body, nil
 	}
 
