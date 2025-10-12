@@ -304,12 +304,21 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 
 func getRespBody(oResp *http.Response) ([]byte, error) {
 	var body []byte
+	fmt.Println("c len:", oResp.ContentLength)
 	if oResp.ContentLength == 0 {
+		fmt.Println("content length 为0")
 		return []byte{}, errors.New("body is empty")
-	} else if oResp.ContentLength == -1 {
-		// header中没有content-length时，oResp.ContentLength的值是-1，此时没必要读取body，会浪费一段读取的超时时间，并且会抛出异常导致误以为端口不开放
-		return body, nil
 	}
+	//else if oResp.ContentLength == -1 {
+	//	// header中没有content-length时，oResp.ContentLength的值是-1，此时没必要读取body，会浪费一段读取的超时时间，并且会抛出异常导致误以为端口不开放
+	//	// 但是，如果是chunked则确实没有content-length，可以继续读取body，只是net/http优化了分块传输，无法获取到Transfer-Encoding属性 ...
+	//	if oResp.Header.Get("Transfer-Encoding") != "" {
+	//		fmt.Println("encoding 不为空")
+	//		// 如果是chunked则确实没有content-length，可以继续读取body
+	//	} else {
+	//		return body, nil
+	//	}
+	//}
 
 	if oResp.Header.Get("Content-Encoding") == "gzip" {
 		gr, err := gzip.NewReader(oResp.Body)
@@ -331,7 +340,8 @@ func getRespBody(oResp *http.Response) ([]byte, error) {
 	} else {
 		raw, err := io.ReadAll(oResp.Body)
 		if err != nil {
-			return nil, err
+			return body, nil
+			//return nil, err
 		}
 		body = raw
 	}
