@@ -304,9 +304,7 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 
 func getRespBody(oResp *http.Response) ([]byte, error) {
 	var body []byte
-	fmt.Println("c len:", oResp.ContentLength)
 	if oResp.ContentLength == 0 {
-		fmt.Println("content length 为0")
 		return []byte{}, errors.New("body is empty")
 	}
 	//else if oResp.ContentLength == -1 {
