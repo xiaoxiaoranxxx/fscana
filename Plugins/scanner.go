@@ -42,6 +42,11 @@ func ScanFromStdin() {
 	go func() {
 		PortScanFromChan(addrChan)
 	}()
+
+	re := regexp.MustCompile(`^.*?(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5}).*?$`)
+	//Discovered open port 8000/tcp on 222.213.125.131
+	re_masscan_running := regexp.MustCompile(`^Discovered.*port\s+(\d{1,5}).*on\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`) // masscan运行时的输出格式
+	re_masscan_output := regexp.MustCompile(`^open.*\s+(\d{1,5})\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`)                // masscan的 -oL输出格式
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -53,10 +58,6 @@ func ScanFromStdin() {
 		//	continue
 		//}
 		ip, port := "", ""
-		re := regexp.MustCompile(`^.*?(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5}).*?$`)
-		//Discovered open port 8000/tcp on 222.213.125.131
-		re_masscan_running := regexp.MustCompile(`^Discovered.*port\s+(\d{1,5}).*on\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`) // masscan运行时的输出格式
-		re_masscan_output := regexp.MustCompile(`^open.*\s+(\d{1,5})\s+(\d{1,3}(?:\.\d{1,3}){3}).*$`)                // masscan的 -oL输出格式
 
 		matches := re.FindAllStringSubmatch(line, -1)
 		matches_masscan_running := re_masscan_running.FindAllStringSubmatch(line, -1)
@@ -107,9 +108,10 @@ func ScanFromStdin() {
 			portInt = 80
 		}
 		addrChan <- Addr{info.Host, portInt}
-
 	}
 	close(addrChan)
+	common.PoolScan.Wait()
+	common.PoolScan.Release()
 	common.LogWG.Wait()
 
 	alivePortReport := "[+] alive ports(%d): "
@@ -123,6 +125,7 @@ func ScanFromStdin() {
 	})
 	alivePortReport = fmt.Sprintf(alivePortReport, count)
 	alivePortReport = strings.TrimRight(alivePortReport, ",")
+
 	common.LogSuccess(alivePortReport)
 	common.LogWG.Wait()
 	close(common.Results)
@@ -161,13 +164,13 @@ func InitKscan() {
 		if err != nil {
 			fmt.Println("[debug] embed err: ", err)
 		}
+		defer fs.Close()
 		if n, err := appfinger.InitDatabaseFS(fs); err != nil {
 			fmt.Println("load fingerprint file2 error, check static/fingerprint.txt file,", err)
 		} else {
 			fmt.Printf("load web fingerprint success :[%d] \n", n)
 		}
 	}
-
 }
 
 func Scan(info common.HostInfo) {
@@ -323,7 +326,8 @@ func Scan(info common.HostInfo) {
 	wg.Wait()
 	common.LogWG.Wait()
 	close(common.Results)
-	fmt.Printf("\n[*] ok: %v/%v\n", common.End, common.Num)
+	//fmt.Printf("\n[*] ok: %v/%v\n", common.End, common.Num)
+	fmt.Printf("\n[*] ok: %v/%v\n", common.Num, common.Num)
 }
 
 var Mutex = &sync.Mutex{}
@@ -332,9 +336,9 @@ func AddScan(scantype string, info common.HostInfo, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer func() {
-			Mutex.Lock()
-			common.End += 1
-			Mutex.Unlock()
+			//Mutex.Lock()
+			//common.End += 1
+			//Mutex.Unlock()
 			wg.Done()
 			if r := recover(); r != nil {
 				fmt.Printf("[ERROR] Goroutine AddScan panic: %v\n", r)
@@ -345,6 +349,15 @@ func AddScan(scantype string, info common.HostInfo, wg *sync.WaitGroup) {
 		Mutex.Unlock()
 		ScanFunc(&scantype, &info)
 	}()
+}
+
+func AddScan2(scantype string, info common.HostInfo) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("[ERROR] Goroutine AddScan panic: %v\n", r)
+		}
+	}()
+	ScanFunc(&scantype, &info)
 }
 
 func ScanFunc(name *string, info *common.HostInfo) {

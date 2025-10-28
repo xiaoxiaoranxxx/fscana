@@ -6,6 +6,7 @@ require (
 	github.com/C-Sto/goWMIExec v0.0.1-deva.0.20210704154847-b8ebd6464a06
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/denisenkom/go-mssqldb v0.12.2
+	github.com/devchat-ai/gopool v0.6.2
 	github.com/fatih/color v1.7.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/cel-go v0.13.0
@@ -50,9 +51,9 @@ require (
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go.uber.org/zap v1.14.0 // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
-	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/tools v0.9.3 // indirect
 	honnef.co/go/tools v0.0.1-2019.2.3 // indirect
 )
 

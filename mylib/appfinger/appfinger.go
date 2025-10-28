@@ -37,12 +37,12 @@ func Search(URL *url.URL, banner *Banner) *FingerPrint {
 
 func Search_for_fscan(banner *httpfinger.Banner) *FingerPrint {
 	var products []string
-	switch banner.Protocol {
+	switch *banner.Protocol {
 	case "http":
 		products = search(banner)
 		return &FingerPrint{products, "", "", ""}
 	case "https":
-		products := search(banner)
+		products = search(banner)
 		return &FingerPrint{products, "", "", ""}
 	}
 	return nil
@@ -78,15 +78,16 @@ func GetBannerWithURL(URL *url.URL, req *http.Request, cli *http.Client) (*Banne
 }
 
 func convHttpBanner(URL *url.URL, banner *Banner) *httpfinger.Banner {
+	port := URL.Port()
 	return &httpfinger.Banner{
-		Protocol: URL.Scheme,
-		Port:     URL.Port(),
-		Header:   banner.Header,
-		Body:     banner.Body,
-		Response: banner.Response,
-		Cert:     banner.Cert,
-		Title:    banner.Title,
-		Hash:     banner.Hash,
-		Icon:     banner.Icon,
+		Protocol: &URL.Scheme,
+		Port:     &port,
+		Header:   &banner.Header,
+		Body:     &banner.Body,
+		Response: &banner.Response,
+		Cert:     &banner.Cert,
+		Title:    &banner.Title,
+		Hash:     &banner.Hash,
+		Icon:     &banner.Icon,
 	}
 }

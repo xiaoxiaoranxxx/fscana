@@ -3,6 +3,7 @@ package WebScan
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/xxx/wscan/mylib/appfinger"
 	"golang.org/x/net/html"
 	"net/url"
 	"regexp"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/xxx/wscan/WebScan/info"
 	"github.com/xxx/wscan/common"
-	"github.com/xxx/wscan/mylib/appfinger"
 	"github.com/xxx/wscan/mylib/appfinger/httpfinger"
 )
 
@@ -22,6 +22,7 @@ type C_FingerPrint struct {
 }
 
 type CheckDatas struct {
+	Url      string
 	Body     []byte
 	Headers  string
 	HttpCode int
@@ -30,12 +31,12 @@ type CheckDatas struct {
 	FirstURL string
 }
 
-func getCopyRight(body []byte) (copyRight string) {
+func getCopyRight(body *string) (copyRight string) {
 	//regexPattern := `(?i)(\s*)(?:&copy;|©)\s*(\d{4}\s*)?([^<\n]+)`
 	//regexPattern := `(?i)([^<>\n"]+)(\S*)([^<>\n"]+)(?:&copy;|©)([^<>\n"]+)(\S*)([^<>\n"]+)` // 共3个捕获组，因为(?:&copy;|©)是非捕获组
 	//regexPattern := `(?i)([^<\n"]+)\s*(?:&copy;|©)\s*([^<>\n"]+)` // 共3个捕获组，因为(?:&copy;|©)是非捕获组
 	regexPattern := `(?i)(\s*)([^<\n]+)(?:&copy;|©)\s*([^<\n="]+)` // 共3个捕获组，因为(?:&copy;|©)是非捕获组
-	unescapedContent := html.UnescapeString(string(body))          // html实体解码
+	unescapedContent := html.UnescapeString(*body)                 // html实体解码
 	re := regexp.MustCompile(regexPattern)
 
 	// 查找所有匹配项
@@ -69,11 +70,11 @@ func getCopyRight(body []byte) (copyRight string) {
 	return
 }
 
-func getEmailByBody(body []byte) string {
+func getEmailByBody(body *string) string {
 	//re := regexp.MustCompile(`([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})`)
 	re := regexp.MustCompile(`[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}`)
 	//re := regexp.MustCompile(`(?!.*\.\.)([a-zA-Z0-9.?_-` + "`" + `]+)@([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}`)
-	find := re.FindAllSubmatch(body, -1)
+	find := re.FindAllStringSubmatch(*body, -1)
 	emailText := ""
 	uniqueMap := make(map[string]bool)
 
@@ -86,7 +87,17 @@ func getEmailByBody(body []byte) string {
 		slice := []string{}
 		for mail, _ := range uniqueMap {
 			if len(mail) < 50 {
-				slice = append(slice, mail)
+				wrongSuffix := []string{".png", ".jpg", ".ico"}
+				correct := true
+				for _, suf := range wrongSuffix {
+					if strings.HasSuffix(mail, suf) {
+						correct = false
+						break
+					}
+				}
+				if correct {
+					slice = append(slice, mail)
+				}
 			}
 		}
 		emailText = strings.Join(slice, ",")
@@ -95,27 +106,36 @@ func getEmailByBody(body []byte) string {
 	return emailText
 }
 
-func InfoCheck(Url string, CheckData *[]CheckDatas) []string {
+func InfoCheck(CheckData *[]CheckDatas) []string {
 	var matched bool
 	var infoname []string
+	var Url string
 
 	for _, data := range *CheckData {
+		Url = data.Url
+		body := string(data.Body)
+		pro := "http"
+		resp := data.Headers + "\r\n\r\n" + body
+		port, hash, icon, icp := "", "", "", ""
 		banner := &httpfinger.Banner{
-			Protocol: "http",
-			Port:     "",
-			Header:   data.Headers,
-			Body:     string(data.Body),
-			Response: data.Headers + "\r\n\r\n" + string(data.Body),
-			Cert:     data.Cert,
-			Title:    data.Title,
-			Hash:     "",
-			Icon:     "",
-			ICP:      "",
+			Protocol: &pro,
+			Port:     &port,
+			Header:   &data.Headers,
+			Body:     &body,
+			Response: &resp,
+			Cert:     &data.Cert,
+			Title:    &data.Title,
+			Hash:     &hash,
+			Icon:     &icon,
+			ICP:      &icp,
 		}
+		//fmt.Println("[debug] res :", banner)
 		//fmt.Println("[debug] infoscan , get cert:", data.Cert)
+		//fmt.Println("[debug] infoscan , get body:", string(data.Body))
 		res := appfinger.Search_for_fscan(banner)
-		copyRight := getCopyRight(data.Body)
-		emailInBody := getEmailByBody(data.Body)
+		copyRight := getCopyRight(&body)
+		emailInBody := getEmailByBody(&body)
+		banner = nil
 
 		if res != nil {
 			// 解析URL字符串
@@ -143,7 +163,7 @@ func InfoCheck(Url string, CheckData *[]CheckDatas) []string {
 			} else {
 				url_strip_path = fmt.Sprintf("%s://%s:%s", protocol, host, port)
 			}
-
+			url_strip_path = Url
 			// 去掉切片元素首尾的空白符，然后用逗号拼接起来
 			var resultSlice []string
 			for _, productName := range res.ProductName {
@@ -201,10 +221,9 @@ func InfoCheck(Url string, CheckData *[]CheckDatas) []string {
 			}
 
 		}
-
 		for _, rule := range info.RuleDatas {
 			if rule.Type == "code" {
-				matched, _ = regexp.MatchString(rule.Rule, string(data.Body))
+				matched, _ = regexp.MatchString(rule.Rule, body)
 			} else {
 				matched, _ = regexp.MatchString(rule.Rule, data.Headers)
 			}
@@ -226,7 +245,7 @@ func InfoCheck(Url string, CheckData *[]CheckDatas) []string {
 		common.LogSuccess(result)
 		return infoname
 	}
-	return []string{""}
+	return infoname
 }
 
 func CalcMd5(Body []byte) (bool, string) {

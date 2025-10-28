@@ -15,16 +15,16 @@ import (
 )
 
 type Banner struct {
-	Protocol string
-	Port     string
-	Header   string
-	Body     string
-	Response string
-	Cert     string
-	Title    string
-	Hash     string
-	Icon     string
-	ICP      string
+	Protocol *string
+	Port     *string
+	Header   *string
+	Body     *string
+	Response *string
+	Cert     *string
+	Title    *string
+	Hash     *string
+	Icon     *string
+	ICP      *string
 }
 
 func GetBannerWithURL(URL *url.URL, req *http.Request, cli *http.Client) (*Banner, error) {
@@ -46,16 +46,23 @@ func GetBannerWithURL(URL *url.URL, req *http.Request, cli *http.Client) (*Banne
 
 	var body = chinese.ToUTF8(resp.Raw.Body)
 
-	banner.Protocol = URL.Scheme
-	banner.Port = GetURLPortString(URL)
-	banner.Header = resp.Raw.Header
-	banner.Body = body
-	banner.Response = resp.Raw.String()
-	banner.Cert = resp.Raw.Cert
-	banner.Title = getTitle(body)
-	banner.Hash = getHash(body)
-	banner.Icon = getIcon(*URL, body)
-	banner.ICP = getICP(body)
+	_port := GetURLPortString(URL)
+	_resp := resp.Raw.String()
+	_title := getTitle(&body)
+	_hash := getHash(body)
+	_icon := getIcon(*URL, &body)
+	_icp := getICP(&body)
+
+	banner.Protocol = &URL.Scheme
+	banner.Port = &_port
+	banner.Header = &resp.Raw.Header
+	banner.Body = &body
+	banner.Response = &_resp
+	banner.Cert = &resp.Raw.Cert
+	banner.Title = &_title
+	banner.Hash = &_hash
+	banner.Icon = &_icon
+	banner.ICP = &_icp
 
 	return banner, err
 }
@@ -70,17 +77,23 @@ func GetBannerWithResponse(URL *url.URL, response string, req *http.Request, cli
 	header, body := simplehttp.SplitHeaderAndBody(response)
 	body = chinese.ToUTF8(body)
 
+	_port := GetURLPortString(URL)
+	_title := getTitle(&body)
+	_hash := getHash(body)
+	_icon := getIcon(*URL, &body)
+	_icp := getICP(&body)
+
 	var banner = &Banner{}
-	banner.Protocol = URL.Scheme
-	banner.Port = GetURLPortString(URL)
-	banner.Header = header
-	banner.Body = body
-	banner.Response = response
-	banner.Cert = ""
-	banner.Title = getTitle(body)
-	banner.Hash = getHash(body)
-	banner.Icon = getIcon(*URL, body)
-	banner.ICP = getICP(body)
+	banner.Protocol = &URL.Scheme
+	banner.Port = &_port
+	banner.Header = &header
+	banner.Body = &body
+	banner.Response = &response
+	banner.Cert = nil
+	banner.Title = &_title
+	banner.Hash = &_hash
+	banner.Icon = &_icon
+	banner.ICP = &_icp
 	return banner, nil
 }
 
@@ -90,7 +103,7 @@ var (
 	regxIconURLNotProtocol = regexp.MustCompile(`^://.*$`)
 )
 
-func getIcon(URL url.URL, body string) string {
+func getIcon(URL url.URL, body *string) string {
 	path := getIconPath(body)
 	if regxIconPath.MatchString(path) == true {
 		URL.Path = ""
@@ -105,8 +118,8 @@ func getIcon(URL url.URL, body string) string {
 	return ""
 }
 
-func getIconPath(body string) string {
-	bodyReader := strings.NewReader(body)
+func getIconPath(body *string) string {
+	bodyReader := strings.NewReader(*body)
 	query, err := goquery.NewDocumentFromReader(bodyReader)
 	if err != nil {
 		return "/favicon.ico"
@@ -127,8 +140,8 @@ func getIconHash(URL string) string {
 	return hash
 }
 
-func getTitle(body string) string {
-	bodyReader := strings.NewReader(body)
+func getTitle(body *string) string {
+	bodyReader := strings.NewReader(*body)
 	query, err := goquery.NewDocumentFromReader(bodyReader)
 	if err != nil {
 		return ""
@@ -156,9 +169,9 @@ var (
 	icpRegx         = regexp.MustCompile(`(?:` + provincesString + `)ICP备\s*\d+号(?:-\d+)?`)
 )
 
-func getICP(body string) string {
-	if icpRegx.MatchString(body) == true {
-		return icpRegx.FindString(body)
+func getICP(body *string) string {
+	if icpRegx.MatchString(*body) == true {
+		return icpRegx.FindString(*body)
 	}
 	return ""
 }

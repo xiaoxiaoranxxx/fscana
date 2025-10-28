@@ -18,6 +18,7 @@ var Db_init_ok bool = false
 
 func add(productName string, expression string) error {
 	httpFinger, err := parseFingerPrint(productName, expression)
+
 	if err != nil {
 		return err
 	}
@@ -61,7 +62,10 @@ func InitDatabaseFS(fs io.Reader) (n int, lastErr error) {
 		}
 	}
 	Db_init_ok = true
-	return len(source), lastErr
+	num := len(source)
+	source = nil
+	sourceBuf = nil
+	return num, lastErr
 }
 
 func Clear() {
@@ -70,13 +74,20 @@ func Clear() {
 
 func search(banner *httpfinger.Banner) []string {
 	var products []string
+	products = make([]string, 0, 12)
+	existProduct := make(map[string]struct{})
 	for _, fingerPrint := range database {
 		if productName := fingerPrint.Match(banner); productName != "" {
-			products = append(products, productName)
+			//去重
+			if _, exists := existProduct[productName]; !exists {
+				existProduct[productName] = struct{}{}
+				products = append(products, productName)
+			}
 		}
 	}
 
-	return removeDuplicate(products)
+	//return removeDuplicate(&products)
+	return products
 }
 
 type Expression struct {
@@ -244,8 +255,18 @@ func (p *Param) match(banner *httpfinger.Banner) bool {
 	subStr := p.value
 	keyword := p.keyword
 
+	var str string
 	v := reflect.ValueOf(*banner)
-	str := v.FieldByName(keyword).String()
+	keyV := v.FieldByName(keyword)
+	if keyV.IsValid() {
+		if keyV.Kind() == reflect.String {
+			str = keyV.String() // 获取 string 值
+		} else if keyV.Kind() == reflect.Ptr && keyV.Type().Elem().Kind() == reflect.String {
+			// 是 *string 类型
+			ptr := keyV.Interface().(*string)
+			str = *ptr
+		}
+	}
 
 	switch p.operator {
 	case unequal:

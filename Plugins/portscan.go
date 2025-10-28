@@ -100,17 +100,30 @@ func PortScan(hostslist []string, ports string, timeout int64) []*PortInfo {
 }
 
 // 从channel动态接收ip和端口并发扫描
-func PortScanFromChan(addrChan chan Addr) {
+//func PortScanFromChan(addrChan chan Addr) {
+//
+//	// 启动worker
+//	for i := 0; i < common.PortScanThreads; i++ {
+//		common.LogWG.Add(1)
+//		go func() {
+//			defer common.LogWG.Done()
+//			for addr := range addrChan {
+//				PortProbeSingle(&addr)
+//			}
+//		}()
+//	}
+//}
 
-	// 启动worker
+func PortScanFromChan(addrChan chan Addr) {
 	for i := 0; i < common.PortScanThreads; i++ {
 		common.LogWG.Add(1)
-		go func() {
+		common.PoolScan.AddTask(func() (interface{}, error) {
 			defer common.LogWG.Done()
 			for addr := range addrChan {
-				PortProbeSingle(addr)
+				PortProbeSingle(&addr)
 			}
-		}()
+			return nil, nil
+		})
 	}
 }
 
@@ -179,13 +192,13 @@ func PortConnect(addr Addr, respondingHosts chan<- *PortInfo, adjustedTimeout in
 
 }
 
-func PortProbeSingle(addr Addr) {
+func PortProbeSingle(addr *Addr) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("[-] PortProbeSingle error: %v\n", err)
 		}
 	}()
-	var wg = sync.WaitGroup{}
+	//var wg = sync.WaitGroup{}
 	web := "1000003"
 	ms17010 := "1000001"
 	res := &common.HostInfo{}
@@ -195,8 +208,8 @@ func PortProbeSingle(addr Addr) {
 		res.Url = host
 		res.Host = host
 		res.Ports = "-1"
-		AddScan("1000003", *res, &wg)
-		wg.Wait()
+		AddScan2(web, *res)
+		//wg.Wait()
 		return
 	}
 	nmap := gonmap.New()
@@ -254,24 +267,24 @@ func PortProbeSingle(addr Addr) {
 
 		switch {
 		case info.Ports == "135":
-			AddScan(info.Ports, *info, &wg)
+			AddScan2(info.Ports, *info)
 			if common.IsWmi {
-				AddScan("1000005", *info, &wg)
+				AddScan2("1000005", *info)
 			}
 		case info.Ports == "389":
 			res := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", "", info.Host, info.Ports, "[+]DC")
 			common.LogSuccess(res)
 		case info.Ports == "445":
-			AddScan(ms17010, *info, &wg)
-			AddScan(info.Ports, *info, &wg)
+			AddScan2(ms17010, *info)
+			AddScan2(info.Ports, *info)
 		case info.Ports == "9000":
-			AddScan(info.Ports, *info, &wg)
+			AddScan2(info.Ports, *info)
 		case IsContain(common.ProtocolArray, info.Ports):
-			AddScan(info.Ports, *info, &wg)
+			AddScan2(info.Ports, *info)
 			fallthrough
 		default:
 			if strings.Contains(protocol, "http") {
-				AddScan(web, *info, &wg) //webtitle
+				AddScan2(web, *info) //webtitle
 			} else if protocol == "imap" || protocol == "imap-proxy" || protocol == "smtp" || protocol == "pop3" || protocol == "ssh" || protocol == "ftp" {
 				banner = strings.ReplaceAll(banner, "\r\n", "__")
 				banner = strings.ReplaceAll(banner, "\n", "__")
@@ -287,11 +300,10 @@ func PortProbeSingle(addr Addr) {
 				result := fmt.Sprintf("[+] Product %s://%s:%s\tbanner\t(%s)", protocol, info.Host, info.Ports, banner)
 				common.LogSuccess(result)
 			} else if protocol == "rdp" && info.Ports != "3389" {
-				AddScan("3389", *info, &wg)
+				AddScan2("3389", *info)
 			}
 		}
 	}
-	wg.Wait()
 }
 
 func NoPortScan(hostslist []string, ports string) (AliveAddress []*PortInfo) {

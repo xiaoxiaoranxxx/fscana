@@ -17,7 +17,7 @@ var Pocs embed.FS
 var once sync.Once
 var AllPocs []*lib.Poc
 
-func WebScan(info *common.HostInfo) {
+func PocScan(info *common.HostInfo) {
 	once.Do(initpoc)
 	var pocinfo = common.Pocinfo
 	buf := strings.Split(info.Url, "/")

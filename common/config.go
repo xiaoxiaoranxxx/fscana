@@ -1,6 +1,9 @@
 package common
 
-import "sync"
+import (
+	"github.com/devchat-ai/gopool"
+	"sync"
+)
 
 var version = "1.8.3.a"
 var Userdict = map[string][]string{
@@ -140,15 +143,16 @@ var (
 )
 
 var (
-	UserAgent     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/534.50 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/534.50"
-	Accept        = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-	DnsLog        bool
-	PocNum        int
-	PocFull       bool
-	CeyeDomain    string
-	ApiKey        string
-	Cookie        string
-	Title_scan_ch chan int
+	UserAgent  = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/534.50 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/534.50"
+	Accept     = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+	DnsLog     bool
+	PocNum     int
+	PocFull    bool
+	CeyeDomain string
+	ApiKey     string
+	Cookie     string
 )
 
+var TitleScanCh chan struct{}
 var AlivePort sync.Map
+var PoolScan gopool.GoPool

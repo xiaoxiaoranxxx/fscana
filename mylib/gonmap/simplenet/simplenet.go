@@ -22,7 +22,7 @@ func tcpSend(protocol string, netloc string, data string, duration time.Duration
 		return "", errors.New(err.Error() + ", connect fail")
 	}
 
-	// 设置套接字延迟关闭选项
+	// 设置套接字延迟关闭选项，当调用 conn.Close() 时，立即关闭连接，不等待任何未发送或未确认的数据
 	if _, ok := conn.(*net.TCPConn); ok {
 		err = conn.(*net.TCPConn).SetLinger(0)
 		if err != nil {

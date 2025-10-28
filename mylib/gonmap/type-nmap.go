@@ -70,8 +70,14 @@ func (n *Nmap) Scan(ip string, port int) (status Status, response *Response) {
 	var probeNames ProbeList
 
 	if n.bypassAllProbePort.exist(port) == true {
+		if n.portProbeMap[port] == nil {
+			n.portProbeMap[port] = []string{}
+		}
 		probeNames = append(n.portProbeMap[port], n.allProbeMap...)
 	} else {
+		if n.portProbeMap[port] == nil {
+			n.portProbeMap[port] = []string{}
+		}
 		probeNames = append(n.allProbeMap, n.portProbeMap[port]...)
 	}
 	probeNames = append(probeNames, n.sslProbeMap...)

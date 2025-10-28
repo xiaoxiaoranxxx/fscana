@@ -165,9 +165,9 @@ func WriteFile(result string, fl *os.File) {
 
 func LogError(errinfo interface{}) {
 	if WaitTime == 0 {
-		fmt.Printf("已完成 %v/%v %v \n", End, Num, errinfo)
+		//fmt.Printf("已完成 %v/%v %v \n", End, Num, errinfo)
 	} else if (time.Now().Unix()-LogSucTime) > WaitTime && (time.Now().Unix()-LogErrTime) > WaitTime {
-		fmt.Printf("已完成 %v/%v %v \n", End, Num, errinfo)
+		//fmt.Printf("已完成 %v/%v %v \n", End, Num, errinfo)
 		LogErrTime = time.Now().Unix()
 	}
 }

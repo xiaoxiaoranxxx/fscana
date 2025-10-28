@@ -45,9 +45,9 @@ func initWithFilter(filter int) {
 		allProbeMap:        []string{"TCP_GetRequest", "TCP_NULL"}, //优先探测这些探针，除非当前端口在bypassAllProbePort数组里
 		sslProbeMap:        []string{"TCP_TLSSessionReq", "TCP_SSLSessionReq", "TCP_SSLv23SessionReq"},
 	}
-	for i := 0; i <= 65535; i++ {
-		nmap.portProbeMap[i] = []string{}
-	}
+	//for i := 0; i <= 65535; i++ {
+	//	nmap.portProbeMap[i] = []string{}
+	//}
 	nmap.loads(nmapServiceProbes + nmapCustomizeProbes)
 	//修复fallback
 	nmap.fixFallback()
@@ -66,6 +66,7 @@ func initWithFilter(filter int) {
 	//fmt.Println(nmap.portProbeMap[10809])
 	//输出统计数据状态
 	statistical()
+	nmapServiceProbes = ""
 }
 
 func statistical() {

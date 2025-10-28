@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"golang.org/x/net/html"
 	"io"
 	"net/http"
 	"net/url"
@@ -26,22 +27,29 @@ type stringer interface {
 }
 
 func WebTitle(info *common.HostInfo) error {
-	common.Title_scan_ch <- 1
+	//fmt.Println("[debug] call WebTitle")
+	common.TitleScanCh <- struct{}{}
+	defer func() {
+		<-common.TitleScanCh
+	}()
 	if common.Scantype == "webpoc" {
-		WebScan.WebScan(info)
-		<-common.Title_scan_ch
+		WebScan.PocScan(info)
 		return nil
 	}
+	//sourceUrl := info.Url
 	err, CheckData := GOWebTitle(info)
-	info.Infostr = WebScan.InfoCheck(info.Url, &CheckData)
-
+	//info.Url = sourceUrl
+	info.Infostr = WebScan.InfoCheck(&CheckData)
+	//fmt.Println("[debug] GOWebTitle over")
+	//fmt.Println("CheckData len=", len(CheckData))
+	CheckData = nil
 	if !common.NoPoc && err == nil {
-		WebScan.WebScan(info)
+		WebScan.PocScan(info)
 	} else {
 		// errlog := fmt.Sprintf("[-] webtitle %v %v", info.Url, err)
 		// common.LogError(errlog)
 	}
-	<-common.Title_scan_ch
+
 	return err
 }
 func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckDatas) {
@@ -65,29 +73,29 @@ func GOWebTitle(info *common.HostInfo) (err error, CheckData []WebScan.CheckData
 			info.Url = fmt.Sprintf("%s://%s", protocol, info.Url)
 		}
 	}
-	err, result, CheckData := geturl(info, 1, CheckData)
+	err, reurl, CheckData := geturl(info, 1, CheckData)
 
 	if err != nil && !strings.Contains(err.Error(), "EOF") {
 		return
 	}
-
 	//有跳转
-	if strings.Contains(result, "://") {
-		info.Url = result
-		err, result, CheckData = geturl(info, 3, CheckData)
+	if strings.Contains(reurl, "://") {
+		info.Url = reurl
+		err, reurl, CheckData = geturl(info, 3, CheckData)
+
 		if err != nil {
 			return
 		}
 	}
 
-	if result == "https" && !strings.HasPrefix(info.Url, "https://") {
+	// 如果reurl是https，判断原始url是否就是https，如果不是则用https协议探测一遍
+	if reurl == "https" && !strings.HasPrefix(info.Url, "https://") {
 		info.Url = strings.Replace(info.Url, "http://", "https://", 1)
-
-		err, result, CheckData = geturl(info, 1, CheckData)
+		err, reurl, CheckData = geturl(info, 1, CheckData)
 
 		//有跳转
-		if strings.Contains(result, "://") {
-			info.Url = result
+		if strings.Contains(reurl, "://") {
+			info.Url = reurl
 			err, _, CheckData = geturl(info, 3, CheckData)
 			if err != nil {
 				return
@@ -158,6 +166,7 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 	//flag 2 /favicon.ico
 	//flag 3 302
 	//flag 4 400 -> https
+	//fmt.Println("[debug] call geturl", flag)
 
 	Url := info.Url
 	if flag == 2 {
@@ -193,6 +202,7 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 	client.Timeout = time.Duration(common.WebTimeout) * time.Second
 	resp, err := client.Do(req)
 	if err != nil {
+		//如果报错，用https协议来重新探测一次
 		return err, "https", CheckData
 	}
 
@@ -247,7 +257,15 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 		}
 	}
 
-	CheckData = append(CheckData, WebScan.CheckDatas{body, fmt.Sprintf("%s", resp.Header), resp.StatusCode, title, certInfo, ""})
+	CheckData = append(CheckData, WebScan.CheckDatas{Url, body, fmt.Sprintf("%s", resp.Header), resp.StatusCode, title, certInfo, ""})
+
+	//if flag == 3 {
+	//	last := len(CheckData) - 1
+	//	if CheckData[last].FirstURL == "" && {
+	//		CheckData[last].FirstURL = info.Url
+	//	}
+	//}
+
 	var reurl string
 	if flag != 2 {
 		if !utf8.Valid(body) {
@@ -262,6 +280,9 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 		redirURL, err1 := resp.Location()
 		if err1 == nil {
 			reurl = redirURL.String()
+			if reurl == Url { //|| reurl == Url+"/" ，加了 / 有些时候确实页面不同
+				reurl = ""
+			}
 		}
 		result := fmt.Sprintf("[*] JUMP %-25v code:%-3v len:%-6v title:%v", resp.Request.URL, resp.StatusCode, length, title)
 		if reurl != "" {
@@ -286,11 +307,15 @@ func geturl(info *common.HostInfo, flag int, CheckData []WebScan.CheckDatas) (er
 			}
 		}
 		if reurl != "" {
-			last := len(CheckData) - 1
-			if CheckData[last].FirstURL == "" {
-				CheckData[last].FirstURL = info.Url
+			//common.LogSuccess(result)
+			if flag == 3 {
+				last := len(CheckData) - 1
+				// 跳转的来源url只记录第一个，后续继续跳转不记录
+				if CheckData[last].FirstURL == "" {
+					CheckData[last].FirstURL = reurl
+				}
 			}
-			common.LogSuccess(result)
+
 		}
 	}
 	if reurl != "" {
@@ -355,8 +380,8 @@ func gettitle(body []byte) (title string) {
 		title = strings.Replace(title, "\n", "", -1)
 		title = strings.Replace(title, "\r", "", -1)
 		title = strings.Replace(title, "&nbsp;", " ", -1)
-		if len(title) > 100 {
-			title = title[:100]
+		if len(title) > 200 {
+			title = title[:200]
 		}
 		if title == "" {
 			title = "\"\"" //空格
@@ -364,7 +389,8 @@ func gettitle(body []byte) (title string) {
 	} else {
 		title = "None" //没有title
 	}
-	return title
+	decodedTitle := html.UnescapeString(title)
+	return decodedTitle
 }
 
 func stripFirstChar(path string) string {

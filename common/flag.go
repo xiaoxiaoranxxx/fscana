@@ -3,6 +3,7 @@ package common
 import (
 	"flag"
 	"fmt"
+	"github.com/devchat-ai/gopool"
 	"os"
 	"time"
 
@@ -44,7 +45,7 @@ func Flag(Info *HostInfo) {
 	flag.Int64Var(&TcpTimeout, "time", 8, "Set timeout")
 	flag.StringVar(&Scantype, "m", "all", "Select scan type ,as: -m ssh")
 	flag.StringVar(&Path, "path", "", "fcgi、smb romote file path")
-	flag.IntVar(&PortScanThreads, "t", 512, "Port scan Thread nums")
+	flag.IntVar(&PortScanThreads, "t", 400, "Port scan Thread nums")
 	flag.IntVar(&LiveTop, "top", 10, "show live len top")
 	flag.StringVar(&HostFile, "hf", "", "host file, -hf ip.txt")
 	flag.StringVar(&Userfile, "userf", "", "username file")
@@ -87,7 +88,10 @@ func Flag(Info *HostInfo) {
 	flag.BoolVar(&StdInput, "std", false, "read ip:port from stdin, one per line")
 
 	flag.Parse()
-	Title_scan_ch = make(chan int, TitleScanThreads)
+
+	TitleScanCh = make(chan struct{}, TitleScanThreads)
+	PoolScan = gopool.NewGoPool(PortScanThreads)
+
 	if IsScreenShot {
 		nowTimestamp := time.Now().Format("2006_01_02_15_04_05")
 		login.OutputDir = "img/" + nowTimestamp
